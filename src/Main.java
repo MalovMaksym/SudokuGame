@@ -11,29 +11,21 @@ import javax.swing.SwingConstants;
 import javax.swing.Timer;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.BasicStroke;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
-
 /**
  * Starting point of the program. Just opens the Sudoku window.
  */
 public class Main {
 
-    public void main(String[] args) {
+    public static void main(String[] args) {
         // Make the buttons and menus look like normal Windows controls
         // instead of Java's default grey look.
         try {
@@ -366,11 +358,32 @@ class SudokuGame {
 
         return true;
     }
-}
 
-private boolean generateSolution(int row, int col){
-    return false;
-}
+    private boolean generateSolution(int row, int col) {
+        if (row == SIZE) return true; // Дійшли до кінця, поле заповнено успішно
+
+        int nextRow = (col == SIZE - 1) ? row + 1 : row;
+        int nextCol = (col == SIZE - 1) ? 0 : col + 1;
+
+        // Перемішуємо числа від 1 до 9, щоб кожна нова гра була унікальною
+        List<Integer> numbers = new ArrayList<>();
+        for (int i = 1; i <= 9; i++) numbers.add(i);
+        Collections.shuffle(numbers);
+
+        for (int val : numbers) {
+            if (isValidInSolution(row, col, val)) {
+                solution[row][col] = val;
+
+                if (generateSolution(nextRow, nextCol)) {
+                    return true;
+                }
+
+                solution[row][col] = EMPTY; // Відкат (backtrack), якщо поточний варіант зайшов у глухий кут
+            }
+        }
+
+        return false;
+    }
 
 /**
  * The main window: the grid in the middle, the controls on the right and a
