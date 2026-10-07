@@ -311,16 +311,20 @@ class SudokuGame {
      * @return true if the move follows the rules
      */
     public boolean isValidMove(int row, int col, int value) {
-        for (int i=0; i<SIZE; i++) {
-            if (board[row][i] == value || board[i][col] == value || board[(row/BOX_SIZE)*BOX_SIZE+i/BOX_SIZE][(col/BOX_SIZE)*BOX_SIZE+i%BOX_SIZE] == value) return false;
+        for (int i = 0; i < SIZE; i++) {
+            if (i != col && board[row][i] == value) return false;
+            if (i != row && board[i][col] == value) return false;
         }
-        int boxRow = (row/BOX_SIZE)*BOX_SIZE;
-        int boxCol = (col/BOX_SIZE)*BOX_SIZE;
-        for (int i=0; i<BOX_SIZE; i++) {
-            for (int j = 0; j < BOX_SIZE; j++) {
-                int rIdx = boxRow + i;
-                int cIdx = boxCol + j;
-                if ((rIdx != row && cIdx != col) && board[rIdx][cIdx] == value) return false;
+        int boxRowStart = (row / BOX_SIZE) * BOX_SIZE;
+        int boxColStart = (col / BOX_SIZE) * BOX_SIZE;
+
+        for (int r = 0; r < BOX_SIZE; r++) {
+            for (int c = 0; c < BOX_SIZE; c++) {
+                int rIdx = boxRowStart + r;
+                int cIdx = boxColStart + c;
+                if ((rIdx != row || cIdx != col) && board[rIdx][cIdx] == value) {
+                    return false;
+                }
             }
         }
         return true;
@@ -384,6 +388,25 @@ class SudokuGame {
 
         return false;
     }
+    private boolean isValidInSolution(int row, int col, int value) {
+        for (int i = 0; i < SIZE; i++) {
+            if (solution[row][i] == value) return false;
+            if (solution[i][col] == value) return false;
+        }
+
+        int boxRowStart = (row / BOX_SIZE) * BOX_SIZE;
+        int boxColStart = (col / BOX_SIZE) * BOX_SIZE;
+
+        for (int r = 0; r < BOX_SIZE; r++) {
+            for (int c = 0; c < BOX_SIZE; c++) {
+                if (solution[boxRowStart + r][boxColStart + c] == value) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}
 
 /**
  * The main window: the grid in the middle, the controls on the right and a
@@ -1020,7 +1043,4 @@ class BoardPanel extends JPanel {
             }
         }
     }
-}
-
-void main() {
 }
