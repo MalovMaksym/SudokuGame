@@ -113,6 +113,8 @@ class SudokuGame {
     /** The value stored in a cell that has no number in it yet. */
     public static final int EMPTY = 0;
 
+    private int score = 0;
+
     // ------------------------------------------------------------------
     // The data of one game
     // ------------------------------------------------------------------
@@ -125,6 +127,8 @@ class SudokuGame {
 
     /** true = this number came with the puzzle and cannot be edited. */
     private final boolean[][] fixed = new boolean[SIZE][SIZE];
+
+    private final boolean[][] scoreAwarded = new boolean[SIZE][SIZE];
 
     /** The difficulty of the puzzle that is currently being played. */
     private Difficulty difficulty = Difficulty.EASY;
@@ -166,6 +170,12 @@ class SudokuGame {
                 fixed[r][c] = true;
             }
         }
+        this.score = 0;
+        for (int r = 0; r < SIZE; r++) {
+            for (int c = 0; c < SIZE; c++) {
+                scoreAwarded[r][c] = false;
+            }
+        }
         int cellsToRemove = difficulty.getCellsToRemove();
         Random rand = new Random();
 
@@ -191,9 +201,15 @@ class SudokuGame {
             for (int c = 0; c < SIZE; c++) {
                 if (!fixed[r][c]) {
                     board[r][c] = EMPTY;
+                    scoreAwarded[r][c] = false;
                 }
             }
         }
+        this.score = 0;
+    }
+
+    public int getScore() {
+        return score;
     }
 
     /** @return the difficulty of the puzzle that is being played. */
@@ -274,6 +290,17 @@ class SudokuGame {
      */
     public boolean setCell(int row, int col, int value) {
         if (row<0|| row >=SIZE || col<0|| col >=SIZE || value<1|| value>9 || fixed[row][col]) return false;
+        if (board[row][col] != value) {
+            if (value == solution[row][col]) {
+                if (!scoreAwarded[row][col]) {
+                    score += 100; // За правильну цифру +100 балів
+                    scoreAwarded[row][col] = true;
+                }
+            } else {
+                score = Math.max(0, score - 20); // За помилку -20 балів, але не менше 0
+            }
+        }
+
         board[row][col] = value;
         return true;
     }
@@ -424,10 +451,12 @@ class SudokuWindow extends JFrame {
     private final JLabel emptyCellsLabel = new JLabel();
     private final JLabel timeLabel = new JLabel();
     private final JLabel statusLabel = new JLabel(" ");
+    private final JLabel scoreLabel = new JLabel("Score: 0");
+    private static final int TIME_LIMIT = 600;
 
     /** Counts the seconds since the current puzzle was started. */
-    private final Timer clock;
     private int secondsPlayed;
+    private final Timer clock;
 
     /** Makes sure the "you won" message is only shown once per puzzle. */
     private boolean alreadyCongratulated;
@@ -451,6 +480,17 @@ class SudokuWindow extends JFrame {
         clock = new Timer(1000, e -> {
             secondsPlayed++;
             updateTimeLabel();
+
+            // Перевірка ліміту в 10 хвилин
+            if (secondsPlayed >= TIME_LIMIT) {
+                stopClock();
+                JOptionPane.showMessageDialog(this,
+                        "Time is up! Game Over.",
+                        "Time limit reached", JOptionPane.WARNING_MESSAGE);
+                game.reset(); // Або можна показати рішення showSolution()
+                boardPanel.repaint();
+                refreshLabels();
+            }
         });
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -514,8 +554,11 @@ class SudokuWindow extends JFrame {
 
         side.add(Box.createVerticalGlue());
 
+        scoreLabel.setAlignmentX(LEFT_ALIGNMENT);
         emptyCellsLabel.setAlignmentX(LEFT_ALIGNMENT);
         timeLabel.setAlignmentX(LEFT_ALIGNMENT);
+
+        side.add(scoreLabel); // Додаємо рахунок
         side.add(emptyCellsLabel);
         side.add(timeLabel);
 
@@ -687,11 +730,13 @@ class SudokuWindow extends JFrame {
 
     private void refreshLabels() {
         emptyCellsLabel.setText("Empty cells: " + game.countEmptyCells());
+        scoreLabel.setText("Score: " + game.getScore());
         updateTimeLabel();
     }
 
     private void updateTimeLabel() {
-        timeLabel.setText(String.format("Time: %02d:%02d", secondsPlayed / 60, secondsPlayed % 60));
+        int timeLeft = Math.max(0, TIME_LIMIT - secondsPlayed);
+        timeLabel.setText(String.format("Time Left: %02d:%02d", timeLeft / 60, timeLeft % 60));
     }
 
     private void startClock() {
